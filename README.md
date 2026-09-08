@@ -2,6 +2,12 @@
 
 CyberWire Daily と Hacking Humans の公式RSSを定期確認し、新しいエピソードだけをGeminiで日本語解説にしてDiscordへ投稿します。
 
+## システム構成
+
+[![CyberWire Discord Digestの構成図](docs/architecture.svg)](docs/architecture.md)
+
+処理フローと外部サービスの役割は[構成図の解説](docs/architecture.md)にまとめています。
+
 ## 動作
 
 - 6時間ごと（UTCの `00:17`, `06:17`, `12:17`, `18:17`）にGitHub Actionsで実行
