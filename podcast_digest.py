@@ -20,11 +20,17 @@ import feedparser
 import requests
 from bs4 import BeautifulSoup
 from google import genai
+from google.genai import errors as genai_errors
 
 
 ROOT = Path(__file__).resolve().parent
 STATE_PATH = Path(os.getenv("STATE_PATH", ROOT / "state" / "episodes.json"))
-GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-3.8-flash")
+DEFAULT_GEMINI_MODELS = (
+    "gemini-3.8-flash",
+    "gemini-3.7-flash",
+    "gemini-3.6-flash",
+    "gemini-3.5-flash",
+)
 TEST_MODE = os.getenv("TEST_MODE", "false").lower() in {"1", "true", "yes"}
 MAX_AUDIO_BYTES = int(os.getenv("MAX_AUDIO_BYTES", str(500 * 1024 * 1024)))
 MAX_DISCORD_SUMMARY_CHARS = 5_500
@@ -317,14 +323,61 @@ def wait_for_file(client: genai.Client, uploaded: Any) -> Any:
     raise TimeoutError("Gemini audio processing did not finish in time")
 
 
-def generate_text_summary(client: genai.Client, episode: Episode, source_type: str, text: str) -> str:
-    response = client.models.generate_content(
-        model=GEMINI_MODEL,
-        contents=build_prompt(episode, source_type, text),
+def configured_gemini_models() -> tuple[str, ...]:
+    raw = os.getenv("GEMINI_MODELS", "").strip()
+    if not raw:
+        legacy_model = os.getenv("GEMINI_MODEL", "").strip()
+        raw = legacy_model or ",".join(DEFAULT_GEMINI_MODELS)
+    models = tuple(dict.fromkeys(part.strip() for part in raw.split(",") if part.strip()))
+    if not models:
+        raise RuntimeError("No Gemini models were configured")
+    invalid = [model for model in models if "flash" not in model.lower() or "lite" in model.lower()]
+    if invalid:
+        raise RuntimeError(
+            "Only non-Lite Gemini Flash models are allowed: " + ", ".join(invalid)
+        )
+    return models
+
+
+def is_retryable_gemini_error(error: Exception) -> bool:
+    return isinstance(error, genai_errors.APIError) and error.code in {
+        429,
+        500,
+        502,
+        503,
+        504,
+    }
+
+
+def generate_with_model_fallback(client: genai.Client, contents: Any) -> tuple[str, str]:
+    models = configured_gemini_models()
+    for index, model in enumerate(models):
+        try:
+            logging.info("Generating with Gemini model: %s", model)
+            response = client.models.generate_content(model=model, contents=contents)
+            if not response.text:
+                raise RuntimeError(f"Gemini returned an empty response: {model}")
+            return response.text.strip(), model
+        except Exception as error:
+            has_fallback = index < len(models) - 1
+            if not has_fallback or not is_retryable_gemini_error(error):
+                raise
+            logging.warning(
+                "Gemini model %s is temporarily unavailable (%s); falling back to %s",
+                model,
+                getattr(error, "code", type(error).__name__),
+                models[index + 1],
+            )
+    raise RuntimeError("All configured Gemini models failed")
+
+
+def generate_text_summary(
+    client: genai.Client, episode: Episode, source_type: str, text: str
+) -> tuple[str, str]:
+    return generate_with_model_fallback(
+        client,
+        build_prompt(episode, source_type, text),
     )
-    if not response.text:
-        raise RuntimeError("Gemini returned an empty response")
-    return response.text.strip()
 
 
 def download_audio(url: str) -> Path:
@@ -348,7 +401,7 @@ def download_audio(url: str) -> Path:
     return path
 
 
-def generate_audio_summary(client: genai.Client, episode: Episode) -> str:
+def generate_audio_summary(client: genai.Client, episode: Episode) -> tuple[str, str]:
     if not episode.audio_url:
         raise RuntimeError("RSS did not include an audio enclosure")
     audio_path = download_audio(episode.audio_url)
@@ -356,13 +409,10 @@ def generate_audio_summary(client: genai.Client, episode: Episode) -> str:
     try:
         uploaded = client.files.upload(file=audio_path)
         uploaded = wait_for_file(client, uploaded)
-        response = client.models.generate_content(
-            model=GEMINI_MODEL,
-            contents=[build_prompt(episode, "公式音声", None), uploaded],
+        return generate_with_model_fallback(
+            client,
+            [build_prompt(episode, "公式音声", None), uploaded],
         )
-        if not response.text:
-            raise RuntimeError("Gemini returned an empty response")
-        return response.text.strip()
     finally:
         audio_path.unlink(missing_ok=True)
         if uploaded is not None and getattr(uploaded, "name", None):
@@ -372,7 +422,7 @@ def generate_audio_summary(client: genai.Client, episode: Episode) -> str:
                 logging.warning("Could not delete uploaded Gemini file", exc_info=True)
 
 
-def summarize_episode(client: genai.Client, episode: Episode) -> tuple[str, str]:
+def summarize_episode(client: genai.Client, episode: Episode) -> tuple[str, str, str]:
     try:
         transcript = fetch_transcript(episode)
     except requests.RequestException:
@@ -380,15 +430,22 @@ def summarize_episode(client: genai.Client, episode: Episode) -> tuple[str, str]
         transcript = None
 
     if transcript:
-        return generate_text_summary(client, episode, "公式Transcript", transcript), "公式Transcript"
+        summary, model = generate_text_summary(
+            client, episode, "公式Transcript", transcript
+        )
+        return summary, "公式Transcript", model
 
     try:
-        return generate_audio_summary(client, episode), "公式音声"
+        summary, model = generate_audio_summary(client, episode)
+        return summary, "公式音声", model
     except Exception:
         logging.warning("Audio summary failed; trying Show Notes", exc_info=True)
         if len(episode.notes) < 100:
             raise
-        return generate_text_summary(client, episode, "公式Show Notes", episode.notes), "公式Show Notes"
+        summary, model = generate_text_summary(
+            client, episode, "公式Show Notes", episode.notes
+        )
+        return summary, "公式Show Notes", model
 
 
 def split_text(text: str, limit: int = 3_500) -> list[str]:
@@ -421,6 +478,7 @@ def post_to_discord(
     episode: Episode,
     summary: str,
     source_type: str,
+    model: str,
     test_mode: bool = False,
 ) -> None:
     label = "🧪 テスト投稿" if test_mode else "🎙️ 新着エピソード"
@@ -440,20 +498,65 @@ def post_to_discord(
             "color": 0x2563EB,
         }
         if index == len(chunks) - 1:
-            embed["footer"] = {"text": f"内容の根拠: {source_type}"}
+            embed["footer"] = {
+                "text": f"内容の根拠: {source_type} | Model: {model}"
+            }
         embeds.append(embed)
 
-    response = HTTP.post(
-        webhook_url,
-        json={
-            "username": "CyberWire 日本語解説",
-            "content": content,
-            "embeds": embeds,
-            "allowed_mentions": {"parse": []},
-        },
-        timeout=30,
+    payload = {
+        "username": "CyberWire 日本語解説",
+        "content": content,
+        "embeds": embeds,
+        "allowed_mentions": {"parse": []},
+    }
+    response = send_discord_payload(webhook_url, payload)
+    if response.status_code < 400:
+        return
+
+    logging.warning(
+        "Discord embed delivery failed (%s): %s; trying plain messages",
+        response.status_code,
+        discord_error_text(response),
     )
-    response.raise_for_status()
+    plain_text = f"{content}\n\n{summary}\n\n内容の根拠: {source_type} | Model: {model}"
+    for chunk in split_text(plain_text, limit=1_800):
+        plain_response = send_discord_payload(
+            webhook_url,
+            {
+                "username": "CyberWire 日本語解説",
+                "content": chunk,
+                "allowed_mentions": {"parse": []},
+            },
+        )
+        if plain_response.status_code >= 400:
+            logging.error(
+                "Discord plain-message delivery failed (%s): %s",
+                plain_response.status_code,
+                discord_error_text(plain_response),
+            )
+            plain_response.raise_for_status()
+
+
+def discord_error_text(response: requests.Response) -> str:
+    text = response.text.strip()
+    return text[:1_000] if text else "No response body"
+
+
+def send_discord_payload(webhook_url: str, payload: dict[str, Any]) -> requests.Response:
+    response: requests.Response | None = None
+    for attempt in range(3):
+        response = HTTP.post(webhook_url, json=payload, timeout=30)
+        if response.status_code == 429 or response.status_code >= 500:
+            if attempt < 2:
+                try:
+                    retry_after = float(response.json().get("retry_after", 2**attempt))
+                except (ValueError, TypeError, AttributeError):
+                    retry_after = float(2**attempt)
+                time.sleep(min(max(retry_after, 1.0), 10.0))
+                continue
+        return response
+    assert response is not None
+    return response
 
 
 def mark_processed(feed_state: dict[str, Any], episode: Episode) -> None:
@@ -498,8 +601,15 @@ def main() -> int:
         for episode in pending:
             logging.info("Processing %s Ep %s", podcast.name, episode.number)
             try:
-                summary, source_type = summarize_episode(client, episode)
-                post_to_discord(webhook_url, episode, summary, source_type, TEST_MODE)
+                summary, source_type, model = summarize_episode(client, episode)
+                post_to_discord(
+                    webhook_url,
+                    episode,
+                    summary,
+                    source_type,
+                    model,
+                    TEST_MODE,
+                )
             except Exception:
                 logging.exception("Episode processing failed; leaving it unprocessed")
                 break
