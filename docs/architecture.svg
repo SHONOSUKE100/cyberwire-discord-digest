@@ -1,0 +1,159 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="960" viewBox="0 0 1600 960" role="img" aria-labelledby="title description">
+  <title id="title">CyberWire Discord Digest 構成図</title>
+  <desc id="description">GitHub Actionsが公式RSSを取得し、Transcriptまたは音声をGemini APIで日本語解説に変換してDiscordへ投稿する流れ</desc>
+  <defs>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="8" stdDeviation="12" flood-color="#172033" flood-opacity="0.10"/>
+    </filter>
+    <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto">
+      <path d="M0,0 L12,6 L0,12 Z" fill="#526075"/>
+    </marker>
+    <marker id="arrowBlue" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto">
+      <path d="M0,0 L12,6 L0,12 Z" fill="#2563eb"/>
+    </marker>
+    <style>
+      .label { font-family: "IPAexGothic", -apple-system, BlinkMacSystemFont, "Noto Sans JP", "Yu Gothic", sans-serif; fill: #182033; }
+      .title { font-size: 38px; font-weight: 760; }
+      .subtitle { font-size: 19px; fill: #647089; }
+      .group-title { font-size: 23px; font-weight: 700; }
+      .node-title { font-size: 21px; font-weight: 700; }
+      .body { font-size: 17px; fill: #4a556b; }
+      .small { font-size: 15px; fill: #647089; }
+      .step { font-size: 16px; font-weight: 700; fill: white; }
+      .arrow { fill: none; stroke: #526075; stroke-width: 3; marker-end: url(#arrow); }
+      .arrow-blue { fill: none; stroke: #2563eb; stroke-width: 4; marker-end: url(#arrowBlue); }
+      .dashed { fill: none; stroke: #8b96aa; stroke-width: 2.5; stroke-dasharray: 9 8; marker-end: url(#arrow); }
+    </style>
+  </defs>
+
+  <rect width="1600" height="960" fill="#f6f8fc"/>
+  <text x="72" y="66" class="label title">CyberWire Discord Digest</text>
+  <text x="72" y="102" class="label subtitle">英語ポッドキャストの新着検知、日本語解説、Discord通知を自動化</text>
+
+  <rect x="55" y="145" width="340" height="600" rx="26" fill="#eef4ff" stroke="#bdd1ff" stroke-width="2"/>
+  <text x="82" y="186" class="label group-title">公式配信元</text>
+
+  <g filter="url(#shadow)">
+    <rect x="82" y="215" width="286" height="104" rx="18" fill="white"/>
+    <circle cx="112" cy="246" r="17" fill="#f97316"/>
+    <path d="M103 252a12 12 0 0 1 12 12M103 242a22 22 0 0 1 22 22" fill="none" stroke="white" stroke-width="3" stroke-linecap="round"/>
+    <circle cx="103" cy="264" r="3" fill="white"/>
+    <text x="141" y="250" class="label node-title">CyberWire Daily</text>
+    <text x="141" y="280" class="label body">公式Megaphone RSS</text>
+  </g>
+
+  <g filter="url(#shadow)">
+    <rect x="82" y="343" width="286" height="104" rx="18" fill="white"/>
+    <circle cx="112" cy="374" r="17" fill="#f97316"/>
+    <path d="M103 380a12 12 0 0 1 12 12M103 370a22 22 0 0 1 22 22" fill="none" stroke="white" stroke-width="3" stroke-linecap="round"/>
+    <circle cx="103" cy="392" r="3" fill="white"/>
+    <text x="141" y="378" class="label node-title">Hacking Humans</text>
+    <text x="141" y="408" class="label body">公式Megaphone RSS</text>
+  </g>
+
+  <g filter="url(#shadow)">
+    <rect x="82" y="495" width="286" height="206" rx="18" fill="white"/>
+    <text x="108" y="535" class="label node-title">エピソード資料</text>
+    <rect x="108" y="558" width="232" height="35" rx="9" fill="#dcfce7"/>
+    <text x="224" y="581" text-anchor="middle" class="label body">① 公式Transcript</text>
+    <rect x="108" y="606" width="232" height="35" rx="9" fill="#ffedd5"/>
+    <text x="224" y="629" text-anchor="middle" class="label body">② 公式音声 MP3</text>
+    <rect x="108" y="654" width="232" height="27" rx="8" fill="#f1f5f9"/>
+    <text x="224" y="674" text-anchor="middle" class="label small">③ 公式Show Notes</text>
+  </g>
+
+  <g filter="url(#shadow)">
+    <rect x="485" y="145" width="535" height="600" rx="26" fill="white" stroke="#d9dfeb" stroke-width="2"/>
+    <rect x="485" y="145" width="535" height="78" rx="26" fill="#172033"/>
+    <path d="M485 197h535v26H485z" fill="#172033"/>
+    <text x="522" y="193" class="label group-title" style="fill:white">GitHub Actions + Python</text>
+
+    <circle cx="535" cy="266" r="20" fill="#2563eb"/>
+    <text x="535" y="272" text-anchor="middle" class="label step">1</text>
+    <text x="575" y="260" class="label node-title">定期起動</text>
+    <text x="575" y="288" class="label body">6時間ごと、または手動テスト</text>
+
+    <line x1="535" y1="295" x2="535" y2="329" stroke="#b5becd" stroke-width="3"/>
+    <circle cx="535" cy="354" r="20" fill="#2563eb"/>
+    <text x="535" y="360" text-anchor="middle" class="label step">2</text>
+    <text x="575" y="348" class="label node-title">RSS取得・新着判定</text>
+    <text x="575" y="376" class="label body">公開日＋番号＋seen_idsで重複防止</text>
+
+    <line x1="535" y1="383" x2="535" y2="417" stroke="#b5becd" stroke-width="3"/>
+    <circle cx="535" cy="442" r="20" fill="#2563eb"/>
+    <text x="535" y="448" text-anchor="middle" class="label step">3</text>
+    <text x="575" y="436" class="label node-title">根拠資料を選択</text>
+    <text x="575" y="464" class="label body">Transcript優先、なければ音声</text>
+
+    <line x1="535" y1="471" x2="535" y2="505" stroke="#b5becd" stroke-width="3"/>
+    <circle cx="535" cy="530" r="20" fill="#2563eb"/>
+    <text x="535" y="536" text-anchor="middle" class="label step">4</text>
+    <text x="575" y="524" class="label node-title">日本語解説を生成</text>
+    <text x="575" y="552" class="label body">概要、用語、論点、学習・実践への接点</text>
+
+    <line x1="535" y1="559" x2="535" y2="593" stroke="#b5becd" stroke-width="3"/>
+    <circle cx="535" cy="618" r="20" fill="#2563eb"/>
+    <text x="535" y="624" text-anchor="middle" class="label step">5</text>
+    <text x="575" y="612" class="label node-title">Discord投稿・状態更新</text>
+    <text x="575" y="640" class="label body">成功後だけstateを更新してGit commit</text>
+
+    <rect x="522" y="674" width="460" height="43" rx="12" fill="#eff6ff"/>
+    <text x="752" y="701" text-anchor="middle" class="label body">失敗した処理は未処理のまま次回再試行</text>
+  </g>
+
+  <g filter="url(#shadow)">
+    <rect x="1110" y="145" width="430" height="318" rx="26" fill="#faf5ff" stroke="#dec5fa" stroke-width="2"/>
+    <text x="1144" y="187" class="label group-title">Gemini API</text>
+    <text x="1144" y="217" class="label body">503・429・一時障害時に自動切替</text>
+
+    <rect x="1144" y="247" width="162" height="62" rx="14" fill="#7c3aed"/>
+    <text x="1225" y="285" text-anchor="middle" class="label node-title" style="fill:white">3.8 Flash</text>
+    <path d="M1315 278h40" class="arrow"/>
+    <rect x="1364" y="247" width="142" height="62" rx="14" fill="#8b5cf6"/>
+    <text x="1435" y="285" text-anchor="middle" class="label node-title" style="fill:white">3.7 Flash</text>
+
+    <rect x="1144" y="333" width="162" height="62" rx="14" fill="#a78bfa"/>
+    <text x="1225" y="371" text-anchor="middle" class="label node-title">3.6 Flash</text>
+    <path d="M1315 364h40" class="arrow"/>
+    <rect x="1364" y="333" width="142" height="62" rx="14" fill="#c4b5fd"/>
+    <text x="1435" y="371" text-anchor="middle" class="label node-title">3.5 Flash</text>
+
+    <text x="1325" y="430" text-anchor="middle" class="label small">Liteモデルは使用しない</text>
+  </g>
+
+  <g filter="url(#shadow)">
+    <rect x="1110" y="535" width="430" height="210" rx="26" fill="#f0fdf4" stroke="#a9dfb7" stroke-width="2"/>
+    <circle cx="1160" cy="589" r="28" fill="#22c55e"/>
+    <path d="M1148 579h24v18h-13l-7 6v-6h-4z" fill="white"/>
+    <text x="1204" y="584" class="label group-title">Discord</text>
+    <text x="1204" y="614" class="label body">Incoming Webhook</text>
+    <rect x="1144" y="649" width="362" height="62" rx="13" fill="white"/>
+    <text x="1325" y="674" text-anchor="middle" class="label body">Embed投稿 → 失敗時は</text>
+    <text x="1325" y="698" text-anchor="middle" class="label body">1,800文字の通常メッセージへ切替</text>
+  </g>
+
+  <g filter="url(#shadow)">
+    <rect x="485" y="800" width="250" height="105" rx="20" fill="#fff7ed" stroke="#fed7aa" stroke-width="2"/>
+    <text x="610" y="841" text-anchor="middle" class="label node-title">GitHub Secrets</text>
+    <text x="610" y="871" text-anchor="middle" class="label small">Gemini API Key</text>
+    <text x="610" y="893" text-anchor="middle" class="label small">Discord Webhook URL</text>
+  </g>
+
+  <g filter="url(#shadow)">
+    <rect x="770" y="800" width="250" height="105" rx="20" fill="#f8fafc" stroke="#cbd5e1" stroke-width="2"/>
+    <text x="895" y="841" text-anchor="middle" class="label node-title">episodes.json</text>
+    <text x="895" y="871" text-anchor="middle" class="label small">最終公開日・番号</text>
+    <text x="895" y="893" text-anchor="middle" class="label small">直近100件のseen_ids</text>
+  </g>
+
+  <path d="M395 355 C430 355 442 355 475 355" class="arrow-blue"/>
+  <text x="435" y="339" text-anchor="middle" class="label small">RSS</text>
+  <path d="M395 596 C430 596 442 452 475 452" class="arrow"/>
+  <path d="M1020 526 C1060 526 1067 304 1100 304" class="arrow-blue"/>
+  <text x="1064" y="390" text-anchor="middle" class="label small">API</text>
+  <path d="M1020 618 C1060 618 1068 618 1100 618" class="arrow-blue"/>
+  <text x="1062" y="602" text-anchor="middle" class="label small">Webhook</text>
+  <path d="M610 800 C610 770 610 762 610 746" class="dashed"/>
+  <path d="M895 800 C895 770 895 762 895 746" class="arrow"/>
+  <text x="1060" y="905" class="label small">実線：処理・データ　　破線：Secret注入</text>
+</svg>
