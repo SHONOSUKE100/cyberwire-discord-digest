@@ -11,7 +11,7 @@ import re
 import tempfile
 import time
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from pathlib import Path
 from typing import Any, Iterable
 from urllib.parse import urlparse
@@ -42,6 +42,7 @@ class Podcast:
     feed_url: str
     episode_path: str
     baseline_episode: int
+    baseline_date: str
 
 
 @dataclass(frozen=True)
@@ -63,6 +64,7 @@ PODCASTS = (
         feed_url="https://feeds.megaphone.fm/cyberwire-daily-podcast",
         episode_path="daily-podcast",
         baseline_episode=2630,
+        baseline_date="2026-09-04",
     ),
     Podcast(
         key="hacking_humans",
@@ -70,6 +72,7 @@ PODCASTS = (
         feed_url="https://feeds.megaphone.fm/hacking-humans",
         episode_path="hacking-humans",
         baseline_episode=401,
+        baseline_date="2026-09-03",
     ),
 )
 
@@ -85,6 +88,7 @@ def load_state(path: Path = STATE_PATH) -> dict[str, Any]:
     for podcast in PODCASTS:
         feed_state = feeds.setdefault(podcast.key, {})
         feed_state.setdefault("last_episode_number", podcast.baseline_episode)
+        feed_state.setdefault("last_published_date", podcast.baseline_date)
         feed_state.setdefault("seen_ids", [])
     return state
 
@@ -208,16 +212,29 @@ def select_new_episodes(
     if not episodes:
         return []
     if test_mode:
-        return [max(episodes, key=lambda episode: episode.number)]
+        return [max(episodes, key=episode_sort_key)]
 
     last_number = int(feed_state["last_episode_number"])
+    last_date = parse_iso_date(str(feed_state["last_published_date"]))
     seen = set(feed_state.get("seen_ids", []))
     selected = [
         episode
         for episode in episodes
-        if episode.number > last_number and episode.entry_id not in seen
+        if episode_sort_key(episode) > (last_date, last_number)
+        and episode.entry_id not in seen
     ]
-    return sorted(selected, key=lambda episode: episode.number)
+    return sorted(selected, key=episode_sort_key)
+
+
+def parse_iso_date(value: str) -> date:
+    try:
+        return date.fromisoformat(value[:10])
+    except ValueError:
+        return date.min
+
+
+def episode_sort_key(episode: Episode) -> tuple[date, int]:
+    return parse_iso_date(episode.published), episode.number
 
 
 def transcript_url(episode: Episode) -> str:
@@ -440,9 +457,13 @@ def post_to_discord(
 
 
 def mark_processed(feed_state: dict[str, Any], episode: Episode) -> None:
-    feed_state["last_episode_number"] = max(
-        int(feed_state["last_episode_number"]), episode.number
+    current_key = (
+        parse_iso_date(str(feed_state["last_published_date"])),
+        int(feed_state["last_episode_number"]),
     )
+    if episode_sort_key(episode) > current_key:
+        feed_state["last_episode_number"] = episode.number
+        feed_state["last_published_date"] = episode.published[:10]
     seen = list(feed_state.get("seen_ids", []))
     if episode.entry_id not in seen:
         seen.append(episode.entry_id)
