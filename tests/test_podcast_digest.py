@@ -18,13 +18,18 @@ class Entry(dict):
 
 
 class PodcastDigestTests(unittest.TestCase):
-    def episode(self, number: int, entry_id: str | None = None) -> Episode:
+    def episode(
+        self,
+        number: int,
+        entry_id: str | None = None,
+        published: str = "2026-09-07",
+    ) -> Episode:
         podcast = PODCASTS[0]
         return Episode(
             podcast=podcast,
             number=number,
             title=f"Episode {number}",
-            published="2026-09-07",
+            published=published,
             page_url=f"https://thecyberwire.com/podcasts/daily-podcast/{number}/notes",
             audio_url="https://example.com/audio.mp3",
             notes="notes",
@@ -52,17 +57,42 @@ class PodcastDigestTests(unittest.TestCase):
         self.assertIsNone(extract_episode_number(PODCASTS[0], entry))
 
     def test_selects_only_unseen_new_episodes_in_order(self):
-        state = {"last_episode_number": 2630, "seen_ids": []}
-        episodes = [self.episode(2632), self.episode(2630), self.episode(2631)]
+        state = {
+            "last_episode_number": 2630,
+            "last_published_date": "2026-09-04",
+            "seen_ids": [],
+        }
+        episodes = [
+            self.episode(2632, published="2026-09-06"),
+            self.episode(2630, published="2026-09-04"),
+            self.episode(2631, published="2026-09-05"),
+        ]
         self.assertEqual(
             [episode.number for episode in select_new_episodes(episodes, state)],
             [2631, 2632],
         )
 
     def test_test_mode_selects_latest_episode(self):
-        state = {"last_episode_number": 9999, "seen_ids": []}
-        episodes = [self.episode(2630), self.episode(2632), self.episode(2631)]
+        state = {
+            "last_episode_number": 9999,
+            "last_published_date": "2026-09-07",
+            "seen_ids": [],
+        }
+        episodes = [
+            self.episode(11617, published="2020-09-04"),
+            self.episode(2632, published="2026-09-07"),
+            self.episode(2631, published="2026-09-06"),
+        ]
         self.assertEqual(select_new_episodes(episodes, state, True)[0].number, 2632)
+
+    def test_old_legacy_number_is_not_treated_as_new(self):
+        state = {
+            "last_episode_number": 2630,
+            "last_published_date": "2026-09-04",
+            "seen_ids": [],
+        }
+        old_episode = self.episode(11617, published="2020-09-04")
+        self.assertEqual(select_new_episodes([old_episode], state), [])
 
     def test_transcript_url_replaces_notes(self):
         self.assertEqual(
@@ -92,11 +122,16 @@ class PodcastDigestTests(unittest.TestCase):
         self.assertLessEqual(sum(len(item["description"]) for item in payload["embeds"]), 5_500)
 
     def test_mark_processed_updates_number_and_deduplicates_id(self):
-        state = {"last_episode_number": 2630, "seen_ids": []}
+        state = {
+            "last_episode_number": 2630,
+            "last_published_date": "2026-09-04",
+            "seen_ids": [],
+        }
         episode = self.episode(2631)
         mark_processed(state, episode)
         mark_processed(state, episode)
         self.assertEqual(state["last_episode_number"], 2631)
+        self.assertEqual(state["last_published_date"], "2026-09-07")
         self.assertEqual(state["seen_ids"], ["ep-2631"])
 
 
