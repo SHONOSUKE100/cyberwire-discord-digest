@@ -2,10 +2,12 @@
   "feeds": {
     "cyberwire_daily": {
       "last_episode_number": 2630,
+      "last_published_date": "2026-09-04",
       "seen_ids": []
     },
     "hacking_humans": {
       "last_episode_number": 401,
+      "last_published_date": "2026-09-03",
       "seen_ids": []
     }
   }
