@@ -1,10 +1,16 @@
+import os
 import unittest
+from types import SimpleNamespace
 from unittest.mock import Mock, patch
+
+from google.genai import errors as genai_errors
 
 from podcast_digest import (
     Episode,
     PODCASTS,
+    configured_gemini_models,
     extract_episode_number,
+    generate_with_model_fallback,
     mark_processed,
     post_to_discord,
     select_new_episodes,
@@ -107,19 +113,66 @@ class PodcastDigestTests(unittest.TestCase):
         self.assertEqual("\n\n".join(chunks), text)
 
     def test_discord_summary_is_sent_in_one_webhook_request(self):
-        response = Mock()
+        response = Mock(status_code=204, text="")
         with patch("podcast_digest.HTTP.post", return_value=response) as post:
             post_to_discord(
                 "https://discord.example/webhook",
                 self.episode(2631),
                 "A" * 5_000,
                 "公式Transcript",
+                "gemini-3.8-flash",
             )
-        response.raise_for_status.assert_called_once_with()
         payload = post.call_args.kwargs["json"]
         self.assertEqual(post.call_count, 1)
         self.assertEqual(payload["allowed_mentions"], {"parse": []})
         self.assertLessEqual(sum(len(item["description"]) for item in payload["embeds"]), 5_500)
+
+    def test_discord_uses_plain_messages_after_embed_400(self):
+        bad_response = Mock(status_code=400, text='{"message":"Invalid Form Body"}')
+        good_response = Mock(status_code=204, text="")
+        with patch(
+            "podcast_digest.HTTP.post",
+            side_effect=[bad_response, good_response],
+        ) as post:
+            post_to_discord(
+                "https://discord.example/webhook",
+                self.episode(2631),
+                "短い解説",
+                "公式Transcript",
+                "gemini-3.7-flash",
+            )
+        self.assertEqual(post.call_count, 2)
+        self.assertNotIn("embeds", post.call_args.kwargs["json"])
+
+    def test_gemini_503_falls_back_to_next_flash_model(self):
+        calls = []
+
+        def generate_content(*, model, contents):
+            calls.append(model)
+            if model == "gemini-3.8-flash":
+                raise genai_errors.ServerError(
+                    503,
+                    {"error": {"code": 503, "status": "UNAVAILABLE"}},
+                )
+            return SimpleNamespace(text="成功")
+
+        client = SimpleNamespace(models=SimpleNamespace(generate_content=generate_content))
+        with patch.dict(
+            os.environ,
+            {"GEMINI_MODELS": "gemini-3.8-flash,gemini-3.7-flash"},
+        ):
+            text, model = generate_with_model_fallback(client, "prompt")
+        self.assertEqual(text, "成功")
+        self.assertEqual(model, "gemini-3.7-flash")
+        self.assertEqual(calls, ["gemini-3.8-flash", "gemini-3.7-flash"])
+
+    def test_lite_model_is_rejected(self):
+        with patch.dict(
+            os.environ,
+            {"GEMINI_MODELS": "gemini-3.8-flash,gemini-3.5-flash-lite"},
+        ):
+            with self.assertRaisesRegex(RuntimeError, "non-Lite"):
+                configured_gemini_models()
 
     def test_mark_processed_updates_number_and_deduplicates_id(self):
         state = {
