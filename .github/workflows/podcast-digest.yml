@@ -1,0 +1,56 @@
+name: Podcast Digest
+
+on:
+  schedule:
+    - cron: "17 */6 * * *"
+  workflow_dispatch:
+    inputs:
+      test_mode:
+        description: "最新回をテスト投稿する（既読状態は変更しません）"
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: podcast-digest
+  cancel-in-progress: false
+
+jobs:
+  digest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install --requirement requirements.txt
+
+      - name: Check feeds and post new episodes
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          GEMINI_MODEL: gemini-3.1-flash-lite
+          TEST_MODE: ${{ github.event_name == 'workflow_dispatch' && inputs.test_mode || 'false' }}
+        run: python podcast_digest.py
+
+      - name: Commit processed episode state
+        if: ${{ github.event_name != 'workflow_dispatch' || !inputs.test_mode }}
+        run: |
+          if git diff --quiet -- state/episodes.json; then
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add state/episodes.json
+          git commit -m "chore: update processed podcast state"
+          git push
