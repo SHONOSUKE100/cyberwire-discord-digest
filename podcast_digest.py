@@ -24,7 +24,7 @@ from google import genai
 
 ROOT = Path(__file__).resolve().parent
 STATE_PATH = Path(os.getenv("STATE_PATH", ROOT / "state" / "episodes.json"))
-GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-3.1-flash-lite")
+GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-3.8-flash")
 TEST_MODE = os.getenv("TEST_MODE", "false").lower() in {"1", "true", "yes"}
 MAX_AUDIO_BYTES = int(os.getenv("MAX_AUDIO_BYTES", str(500 * 1024 * 1024)))
 MAX_DISCORD_SUMMARY_CHARS = 5_500
