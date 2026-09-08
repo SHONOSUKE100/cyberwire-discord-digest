@@ -56,7 +56,8 @@ python podcast_digest.py
 
 ## 補足
 
-- Geminiのモデルは既定で `gemini-3.8-flash` です。変更する場合は `GEMINI_MODEL` 環境変数を指定します。
+- Geminiは `3.8 Flash` → `3.7 Flash` → `3.6 Flash` → `3.5 Flash` の順で利用します。高需要や一時的なAPI障害が起きた場合だけ次のモデルへ自動的に切り替わります。Liteモデルは使用しません。
+- モデル順を変更する場合は `GEMINI_MODELS` 環境変数へカンマ区切りで指定します。安全のため、Flash以外またはLiteを含む指定はエラーになります。
 - GitHub Actionsの定期実行は混雑時に遅れることがあります。
 - 公開リポジトリでもGitHub Secretsの値はソースコードには保存されません。ただし、ログへキーを出力する変更は加えないでください。
 - 無料枠やモデル提供条件は変更される可能性があるため、Google AI Studio側の利用状況も確認してください。
