@@ -1,11 +1,12 @@
 {
   "feeds": {
     "cyberwire_daily": {
-      "last_episode_number": 2631,
-      "last_processed_at": "2026-09-08T21:17:04.096158+00:00",
-      "last_published_date": "2026-09-08",
+      "last_episode_number": 2632,
+      "last_processed_at": "2026-09-09T20:59:50.526972+00:00",
+      "last_published_date": "2026-09-09",
       "seen_ids": [
-        "d07558dc-1671-11f1-ad8a-bbd39a687b4d"
+        "d07558dc-1671-11f1-ad8a-bbd39a687b4d",
+        "d09aa196-1671-11f1-ad8a-a3fe80f404ed"
       ]
     },
     "hacking_humans": {
