@@ -44,9 +44,9 @@
       ]
     },
     "hacking_humans": {
-      "last_episode_number": 408,
-      "last_processed_at": "2026-10-22T12:03:42.849400+00:00",
-      "last_published_date": "2026-10-22",
+      "last_episode_number": 409,
+      "last_processed_at": "2026-10-29T05:59:43.005391+00:00",
+      "last_published_date": "2026-10-29",
       "seen_ids": [
         "d404b836-496a-11f1-8209-579e7ce7cc6b",
         "d4311868-496a-11f1-8209-bf425e928b67",
@@ -54,7 +54,8 @@
         "d4876092-496a-11f1-8209-87339bb79243",
         "d4b1d9ee-496a-11f1-8209-ffb49199f630",
         "d4dc6dbc-496a-11f1-8209-1fb8f3c7cead",
-        "d5074eec-496a-11f1-8209-1f8629b0d288"
+        "d5074eec-496a-11f1-8209-1f8629b0d288",
+        "d5345ec8-496a-11f1-8209-136943cca66f"
       ]
     }
   }
