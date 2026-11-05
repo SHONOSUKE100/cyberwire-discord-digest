@@ -1,9 +1,9 @@
 {
   "feeds": {
     "cyberwire_daily": {
-      "last_episode_number": 2670,
-      "last_processed_at": "2026-11-04T06:40:32.639813+00:00",
-      "last_published_date": "2026-11-03",
+      "last_episode_number": 2671,
+      "last_processed_at": "2026-11-05T06:59:27.978240+00:00",
+      "last_published_date": "2026-11-04",
       "seen_ids": [
         "d07558dc-1671-11f1-ad8a-bbd39a687b4d",
         "d09aa196-1671-11f1-ad8a-a3fe80f404ed",
@@ -44,13 +44,14 @@
         "d618ddd6-1671-11f1-ad8a-bb30d9fda644",
         "d63e85f4-1671-11f1-ad8a-2b7ffc210513",
         "d664b828-1671-11f1-ad8a-875bf98de76b",
-        "d68b992a-1671-11f1-ad8a-cbac58d2d364"
+        "d68b992a-1671-11f1-ad8a-cbac58d2d364",
+        "d6b528b2-1671-11f1-ad8a-f339a5e646bc"
       ]
     },
     "hacking_humans": {
-      "last_episode_number": 409,
-      "last_processed_at": "2026-10-29T05:59:43.005391+00:00",
-      "last_published_date": "2026-10-29",
+      "last_episode_number": 410,
+      "last_processed_at": "2026-11-05T07:01:40.795623+00:00",
+      "last_published_date": "2026-11-05",
       "seen_ids": [
         "d404b836-496a-11f1-8209-579e7ce7cc6b",
         "d4311868-496a-11f1-8209-bf425e928b67",
@@ -59,7 +60,8 @@
         "d4b1d9ee-496a-11f1-8209-ffb49199f630",
         "d4dc6dbc-496a-11f1-8209-1fb8f3c7cead",
         "d5074eec-496a-11f1-8209-1f8629b0d288",
-        "d5345ec8-496a-11f1-8209-136943cca66f"
+        "d5345ec8-496a-11f1-8209-136943cca66f",
+        "d55f21c6-496a-11f1-8209-4b1a9a574a02"
       ]
     }
   }
