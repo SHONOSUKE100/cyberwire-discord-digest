@@ -1,9 +1,9 @@
 {
   "feeds": {
     "cyberwire_daily": {
-      "last_episode_number": 2680,
-      "last_processed_at": "2026-11-19T07:40:33.030207+00:00",
-      "last_published_date": "2026-11-18",
+      "last_episode_number": 2681,
+      "last_processed_at": "2026-11-20T07:29:34.738571+00:00",
+      "last_published_date": "2026-11-19",
       "seen_ids": [
         "d07558dc-1671-11f1-ad8a-bbd39a687b4d",
         "d09aa196-1671-11f1-ad8a-a3fe80f404ed",
@@ -54,7 +54,8 @@
         "d7d1883a-1671-11f1-ad8a-4b48d4cd001e",
         "d7fc4a7a-1671-11f1-ad8a-bbe9f9ad09ef",
         "d8289e4a-1671-11f1-ad8a-6b7b50540b6b",
-        "d85728dc-1671-11f1-ad8a-97f1a47bc3cc"
+        "d85728dc-1671-11f1-ad8a-97f1a47bc3cc",
+        "d8822e74-1671-11f1-ad8a-cf6724f5fb1c"
       ]
     },
     "hacking_humans": {
